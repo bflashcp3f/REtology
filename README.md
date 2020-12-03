@@ -6,6 +6,8 @@ Tested verisions.
 - python == 3.7.7
 - torch == 1.5.0
 - transformers == 3.0.2
+- keras == 2.3.1
+- tensorflow-gpu == 1.15.0
 
 ## Pre-trained Models
 We use BERT for example but you can also use RoBERTa by simply altering 
@@ -26,7 +28,7 @@ python code/finetune_tasks/run_tacred.py \
   --data_dir $TACRED_DATA_DIR \
   --gpu_ids 0,1 \
   --lm_model bert-base-uncased \
-  --batch_size 64 \
+  --batch_size 128 \
   --learning_rate 2e-5 \
   --num_train_epochs 5 \
   --max_seq_length 128 \
