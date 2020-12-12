@@ -11,7 +11,7 @@ Tested verisions.
 
 ## Pre-trained Models
 We use BERT for example but you can also use RoBERTa by simply altering 
-the argument `lm_model`.
+the argument `lm_model` (with different hyper-parameters).
 
 ## Tasks
 ### Sentence-Level RE
@@ -43,12 +43,12 @@ can further improve the performance. For example, if the entity type is `PERSON`
 to `[SUBJ-PERSON-START]` by adding `--encode_ent_type` in above command. Similar
 method has been published in Zhong and Chen (2020) (didn't know this paper when the model was implemented).
 
-|                   | w/o entity type     | w/ entity type  | 
+The results on test set:
+
+|                   | w/o entity type    | w/ entity type  | 
 | ----------------------  | ------------- | ---------  | 
 | BERT (base)             | 68.31         | 70.43      | 
 | RoBERTa (base)         |  68.42        | 70.38      | 
-
-Note: RoBERTa used a different learning rate 1e-5.
 
 #### KBP37 ([paper](https://arxiv.org/pdf/1508.01006v2.pdf) / [data](https://github.com/zhangdongxu/kbp37))
 ```
@@ -67,6 +67,11 @@ python code/finetune_tasks/run_kbp37.py \
   --save_model
 ```
 
+|                   | Dev    | Test  | 
+| ----------------------  | ------------- | ---------  | 
+| BERT (base)             | 68.35         | 70.28      | 
+| RoBERTa (base)         |  68.59         | 69.61      | 
+
 ## TODO
 ### Sentence-level RE
 - [ ] SemEval-2010 Task 8
@@ -74,12 +79,12 @@ python code/finetune_tasks/run_kbp37.py \
 ### Dialogue RE
 - [ ] DialogRE
 
-### Distantly-supervised RE
-- [ ] NYT-Freebase
-
 ### Doc-level RE
 - [ ] DocRED
 - [ ] SciREX
+
+### Distantly-supervised RE
+- [ ] NYT-Freebase
 
 ## Contact
 If you have any questions or suggestions, please contact me at `<fan.bai@cc.gatech.edu>` or create a Github issue.
