@@ -3,8 +3,13 @@
 import json
 import os
 import torch
+import sys
+import argparse
 
-from constants.tacred import *
+# from constants.tacred import *
+from constants import tacred
+from constants import kbp37
+
 from collections import Counter, OrderedDict
 from keras.preprocessing.sequence import pad_sequences
 from torch.utils.data import TensorDataset, DataLoader, RandomSampler, SequentialSampler
@@ -63,7 +68,10 @@ def parse_arguments():
     return args
 
 
-def score(key, prediction, verbose=False):
+def score(key, prediction, no_relation="no_relation", verbose=False):
+
+    # NO_RELATION = "no_relation"
+
     correct_by_relation = Counter()
     guessed_by_relation = Counter()
     gold_by_relation = Counter()
@@ -73,13 +81,13 @@ def score(key, prediction, verbose=False):
         gold = key[row]
         guess = prediction[row]
 
-        if gold == NO_RELATION and guess == NO_RELATION:
+        if gold == no_relation and guess == no_relation:
             pass
-        elif gold == NO_RELATION and guess != NO_RELATION:
+        elif gold == no_relation and guess != no_relation:
             guessed_by_relation[guess] += 1
-        elif gold != NO_RELATION and guess == NO_RELATION:
+        elif gold != no_relation and guess == no_relation:
             gold_by_relation[gold] += 1
-        elif gold != NO_RELATION and guess != NO_RELATION:
+        elif gold != no_relation and guess != no_relation:
             guessed_by_relation[guess] += 1
             gold_by_relation[gold] += 1
             if gold == guess:
@@ -167,13 +175,6 @@ class DataProcessor(object):
 
         data_path = os.path.join(self.data_dir, file_name)
 
-        # sen_list = []
-        # len_list = []
-        # rel_list = []
-        # label_list = []
-        # subj_ent_start_list = []
-        # obj_ent_start_list = []
-
         feature_list = []
 
         with open(data_path) as f:
@@ -222,13 +223,65 @@ class DataProcessor(object):
                                                         obj_ent_start, obj_ent_end,
                                                         )
 
-                feature_list.append(InputFeatures(sentence=' '.join(processed_token_list), label=LABEL_TO_ID[relation],
+                feature_list.append(InputFeatures(sentence=' '.join(processed_token_list), label=tacred.LABEL_TO_ID[relation],
                                                   relation=relation, subj_ent_start=subj_ent_start, obj_ent_start=obj_ent_start,
                                                   sen_len=len(processed_token_list)))
 
             #             break
 
             print("The number of mentions:", len(feature_list))
+
+        return feature_list
+
+
+    def load_kbp37_txt(self, file_name):
+        """See base class."""
+
+        data_path = os.path.join(self.data_dir, file_name)
+
+        def load_from_txt(data_path, verbose=False, strip=True):
+            examples = []
+
+            with open(data_path, encoding='utf-8') as infile:
+                while True:
+                    line = infile.readline()
+                    if len(line) == 0:
+                        break
+
+                    if strip:
+                        line = line.strip()
+
+                    examples.append(line)
+
+            if verbose:
+                print("{} examples read in {} .".format(len(examples), data_path))
+            return examples
+
+        org_data = load_from_txt(data_path)
+        assert len(org_data) % 4 == 0
+
+        feature_list = []
+
+        for idx in range(0, len(org_data), 4):
+            sid_sen_str = org_data[idx]
+            relation = org_data[idx+1]
+
+            if len(sid_sen_str.split("\t")) != 2:
+                print(sid_sen_str)
+                raise
+
+            sid, sen_str = sid_sen_str.split("\t")
+            assert sen_str[:2] =='" ' and sen_str[-2:] == ' "'
+            sen_str = sen_str[2:-2] # Remove the prefix and suffix
+            subj_ent_start = "<e1>"
+            obj_ent_start = "<e2>"
+
+            feature_list.append(InputFeatures(sentence=sen_str, label=kbp37.LABEL_TO_ID[relation],
+                                              relation=relation, subj_ent_start=subj_ent_start,
+                                              obj_ent_start=obj_ent_start,
+                                              sen_len=len(sen_str.split())))
+
+        print("The number of mentions:", len(feature_list))
 
         return feature_list
 
@@ -288,17 +341,8 @@ def convert_features_to_dataloader(args, feature_list, tokenizer, logger, file_t
     labels = torch.tensor([item.label for item in feature_list])
     masks = torch.tensor(attention_masks)
 
-    # if file_train:
-    # print(inputs.shape)
-    # print(labels.shape)
-    # print(masks.shape)
-
     subj_idxs = torch.tensor(subj_idx_list)
     obj_idxs = torch.tensor(obj_idx_list)
-
-    # if file_train:
-    # print(subj_idxs.shape)
-    # print(obj_idxs.shape)
 
     if file_train:
         data = TensorDataset(inputs, masks, labels, subj_idxs, obj_idxs)
@@ -337,15 +381,6 @@ def convert_examples_to_features(args, sens, labels, subj_ent_start_list, obj_en
     # print(input_ids.shape)
     logger.info("input_ids[0]: " + " ".join([str(item) for item in input_ids[0]]))
 
-    # subj_idx_list = [tokenized_texts[sen_idx].index(subj_ent_start_list[sen_idx].lower())
-    #                  if tokenized_texts[sen_idx].index(subj_ent_start_list[sen_idx].lower()) < args.max_seq_length else args.max_seq_length - 1
-    #                  for sen_idx in range(len(tokenized_texts))
-    #                 ]
-    # obj_idx_list = [tokenized_texts[sen_idx].index(obj_ent_start_list[sen_idx].lower())
-    #                 if tokenized_texts[sen_idx].index(obj_ent_start_list[sen_idx].lower()) < args.max_seq_length else args.max_seq_length - 1
-    #                 for sen_idx in range(len(tokenized_texts))
-    #                ]
-
     subj_idx_list = [tokenized_texts[sen_idx].index(subj_ent_start_list[sen_idx])
                      if tokenized_texts[sen_idx].index(
         subj_ent_start_list[sen_idx]) < args.max_seq_length else args.max_seq_length - 1
@@ -378,17 +413,8 @@ def convert_examples_to_features(args, sens, labels, subj_ent_start_list, obj_en
     labels = torch.tensor(labels)
     masks = torch.tensor(attention_masks)
 
-    # if file_train:
-    # print(inputs.shape)
-    # print(labels.shape)
-    # print(masks.shape)
-
     subj_idxs = torch.tensor(subj_idx_list)
     obj_idxs = torch.tensor(obj_idx_list)
-
-    # if file_train:
-    # print(subj_idxs.shape)
-    # print(obj_idxs.shape)
 
     if file_train:
         data = TensorDataset(inputs, masks, labels, subj_idxs, obj_idxs)
