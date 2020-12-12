@@ -20,7 +20,7 @@ from collections import Counter, OrderedDict
 import sys
 sys.path.append("./code")
 
-from constants.tacred import *
+from constants.kbp37 import *
 from utils.sen_re import *
 from models.sen_re import BertEMES, RobertaEMES
 
@@ -127,9 +127,9 @@ def main(args):
 
     processor = DataProcessor(args.data_dir)
 
-    train_features = processor.load_tacred_json("train.json", encode_ent_type=args.encode_ent_type)
-    dev_features = processor.load_tacred_json("dev.json", encode_ent_type=args.encode_ent_type)
-    test_features = processor.load_tacred_json("test.json", encode_ent_type=args.encode_ent_type)
+    train_features = processor.load_kbp37_txt("train.txt")
+    dev_features = processor.load_kbp37_txt("dev.txt")
+    test_features = processor.load_kbp37_txt("test.txt")
 
     if args.do_train:
         logger.info("Start pre-processing training data")
