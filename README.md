@@ -20,7 +20,8 @@ to generate relation representation [(Soares et al., 2019)](https://arxiv.org/ab
 tokens such as `[E1-START]` and `[E1-END]` (`[SUBJ-START]` and `[SUBJ-END]` if we know which entity is the subject entity) are used to specify the positions of two entities, and the contextualized
 embeddings of `[E1-START]` and `[E2-START]` are concatenated as input to a linear layer to predict the relation.
 
-#### TACRED
+#### TACRED ([paper](https://nlp.stanford.edu/pubs/zhang2017tacred.pdf) / [data](https://catalog.ldc.upenn.edu/LDC2018T24))
+
 ```
 export TACRED_DATA_DIR=<TACRED_DATA_DIR>
 export OUT_DIR=<$OUT_DIR>
@@ -37,7 +38,7 @@ python code/finetune_tasks/run_tacred.py \
   --save_model
 ```
 
-Note that TACRED dataset provides entity type information, so encoding such information in the special token 
+TACRED dataset provides entity type information, so encoding such information in the special token 
 can further improve the performance. For example, if the entity type is `PERSON`, we can change the special token `[SUBJ-START]` 
 to `[SUBJ-PERSON-START]` by adding `--encode_ent_type` in above command. Similar
 method has been published in Zhong and Chen (2020) (didn't know this paper when the model was implemented).
@@ -47,11 +48,31 @@ method has been published in Zhong and Chen (2020) (didn't know this paper when 
 | BERT (base)             | 68.31         | 70.43      | 
 | RoBERTa (base)         |  68.42        | 70.38      | 
 
+Note: RoBERTa used a different learning rate 1e-5.
+
+#### KBP37 ([paper](https://arxiv.org/pdf/1508.01006v2.pdf) / [data](https://github.com/zhangdongxu/kbp37))
+```
+export KBP37_DATA_DIR=<KBP37_DATA_DIR>
+export OUT_DIR=<$OUT_DIR>
+python code/finetune_tasks/run_kbp37.py \
+  --data_dir $KBP37_DATA_DIR \
+  --gpu_ids 0,1 \
+  --lm_model bert-base-uncased \
+  --batch_size 128 \
+  --learning_rate 2e-5 \
+  --num_train_epochs 5 \
+  --max_seq_length 128 \
+  --output_dir $OUT_DIR \
+  --do_train \
+  --save_model
+```
 
 ## TODO
 ### Sentence-level RE
-- [ ] KBP37
 - [ ] SemEval-2010 Task 8
+
+### Dialogue RE
+- [ ] DialogRE
 
 ### Distantly-supervised RE
 - [ ] NYT-Freebase
