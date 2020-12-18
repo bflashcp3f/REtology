@@ -77,13 +77,13 @@ python code/finetune_tasks/run_kbp37.py \
 ```
 export SemEval_DATA_DIR=<SemEval_DATA_DIR>
 export OUT_DIR=<$OUT_DIR>
-python code/finetune_tasks/run_semval.py \
+python code/finetune_tasks/run_semeval.py \
   --data_dir $SemEval_DATA_DIR \
   --gpu_ids 0,1 \
   --lm_model bert-base-uncased \
   --batch_size 128 \
   --learning_rate 2e-5 \
-  --num_train_epochs 5 \
+  --num_train_epochs 20 \
   --max_seq_length 128 \
   --output_dir $OUT_DIR \
   --do_train \
@@ -92,8 +92,8 @@ python code/finetune_tasks/run_semval.py \
 
 |                   | Dev    | Test  | 
 | ----------------------  | ------------- | ---------  | 
-| BERT (base)             |          |       | 
-| RoBERTa (base)         |           |       | 
+| BERT (base)             |  80.56        | 88.53      | 
+| RoBERTa (base)          |  80.67        | 87.74      | 
 
 ## TODO
 
