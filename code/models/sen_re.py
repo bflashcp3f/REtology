@@ -117,3 +117,15 @@ class RobertaEMES(BertPreTrainedModel):
         #         print("outputs: ", outputs)
 
         return outputs  # (loss), logits, (hidden_states), (attentions)
+
+
+MODELS = {'bert-base-uncased': {'tokenizer': BertTokenizer,
+                                'config': BertConfig,
+                                'emes': BertEMES},
+          'SpanBERT/spanbert-base-cased': {'tokenizer': BertTokenizer,
+                                           'config': BertConfig,
+                                           'emes': BertEMES},
+          'roberta-base': {'tokenizer': RobertaTokenizer,
+                           'config': RobertaConfig,
+                           'emes': RobertaEMES}
+          }

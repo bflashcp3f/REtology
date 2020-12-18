@@ -22,57 +22,12 @@ sys.path.append("./code")
 
 from constants.tacred import *
 from utils.sen_re import *
-from models.sen_re import BertEMES, RobertaEMES
+from models.sen_re import *
 
 logging.basicConfig(format='%(asctime)s - %(levelname)s - %(name)s - %(message)s',
                     datefmt='%m/%d/%Y %H:%M:%S',
                     level=logging.INFO)
 logger = logging.getLogger(__name__)
-
-MODELS = {'bert-base-uncased': {'tokenizer': BertTokenizer,
-                                'config': BertConfig,
-                                'emes': BertEMES},
-          'SpanBERT/spanbert-base-cased': {'tokenizer': BertTokenizer,
-                                           'config': BertConfig,
-                                           'emes': BertEMES},
-          'roberta-base': {'tokenizer': RobertaTokenizer,
-                           'config': RobertaConfig,
-                           'emes': RobertaEMES}
-          }
-
-
-
-def eval(trained_model, eval_dataloader, device, negative_label="no_relation"):
-
-    gold_list = []
-    pred_list = []
-
-    # Evaluate data for one epoch
-    for batch in eval_dataloader:
-        # Add batch to GPU
-        batch = tuple(t.to(device) for t in batch)
-        # Unpack the inputs from our dataloader
-        b_input_ids, b_input_mask, b_labels, b_subj_idx, b_obj_idx = batch
-        # Telling the model not to compute or store gradients, saving memory and speeding up dev
-        with torch.no_grad():
-            # Forward pass, calculate logit predictions
-            logits = trained_model(b_input_ids, token_type_ids=None, attention_mask=b_input_mask,
-                           subj_ent_start=b_subj_idx, obj_ent_start=b_obj_idx
-                           )
-
-        # Move logits and labels to CPU
-        logits = logits[0].detach().cpu().numpy()
-        label_ids = b_labels.to('cpu').numpy()
-
-        gold_list += np.argmax(logits, axis=1).tolist()
-        pred_list += label_ids.tolist()
-
-    prec, rec, f1 = score([ID_TO_LABEL[gold_id] for gold_id in gold_list],
-                          [ID_TO_LABEL[pred_id] for pred_id in pred_list],
-                          no_relation=negative_label
-                          )
-
-    return prec, rec, f1
 
 
 def main(args):
@@ -167,7 +122,7 @@ def main(args):
     best_f1 = -1
 
     if args.do_train:
-        for _ in trange(args.num_train_epochs, desc="Epoch"):
+        for num_epoch in trange(args.num_train_epochs, desc="Epoch"):
 
             # Set our model to training mode (as opposed to evaluation mode)
             model.train()
@@ -211,12 +166,14 @@ def main(args):
             #         break
 
             # print("Train loss: {}".format(tr_loss/nb_tr_steps))
+            logger.info("\nEpoch: {}".format(num_epoch))
             logger.info("Train loss: {}".format(tr_loss / nb_tr_steps))
 
             # Put model in evaluation mode to evaluate loss
             model.eval()
 
-            prec_dev, rec_dev, f1_dev = eval(trained_model=model, eval_dataloader=dev_dataloader, device=device, negative_label=args.negative_label)
+            prec_dev, rec_dev, f1_dev = eval(trained_model=model, eval_dataloader=dev_dataloader,
+                                             device=device, id2label=ID_TO_LABEL, negative_label=NO_RELATION)
 
             # print("The performance on dev set: ")
             logger.info("\nThe performance on dev set: ")
@@ -224,7 +181,8 @@ def main(args):
             logger.info("   Recall (micro): {:.3%}".format(rec_dev))
             logger.info("       F1 (micro): {:.3%}".format(f1_dev))
 
-            prec_test, rec_test, f1_test = eval(trained_model=model, eval_dataloader=test_dataloader, device=device, negative_label=args.negative_label)
+            prec_test, rec_test, f1_test = eval(trained_model=model, eval_dataloader=test_dataloader,
+                                                device=device, id2label=ID_TO_LABEL, negative_label=NO_RELATION)
 
             # print("\nThe performance on test set: ")
             logger.info("\nThe performance on test set: ")
@@ -272,7 +230,8 @@ def main(args):
         if args.eval_test:
             # Put model in evaluation mode to evaluate loss
 
-            prec_test, rec_test, f1_test = eval(trained_model=model, eval_dataloader=test_dataloader, device=device)
+            prec_test, rec_test, f1_test = eval(trained_model=model, eval_dataloader=test_dataloader,
+                                                device=device, id2label=ID_TO_LABEL, negative_label=NO_RELATION)
 
             # print("\nThe performance on test set: ")
             logger.info("\nThe performance on test set: ")
@@ -280,7 +239,8 @@ def main(args):
             logger.info("   Recall (micro): {:.3%}".format(rec_test))
             logger.info("       F1 (micro): {:.3%}".format(f1_test))
         else:
-            prec_dev, rec_dev, f1_dev = eval(trained_model=model, eval_dataloader=dev_dataloader, device=device)
+            prec_dev, rec_dev, f1_dev = eval(trained_model=model, eval_dataloader=dev_dataloader,
+                                             device=device, id2label=ID_TO_LABEL, negative_label=NO_RELATION)
 
             # print("The performance on dev set: ")
             logger.info("\nThe performance on dev set: ")
@@ -301,7 +261,6 @@ if __name__ == "__main__":
                         help="The maximum total input sequence length after WordPiece tokenization. \n"
                              "Sequences longer than this will be truncated, and sequences shorter \n"
                              "than this will be padded.")
-    parser.add_argument("--negative_label", default="no_relation", type=str)
     parser.add_argument("--do_train", action='store_true', help="Whether to run training.")
     parser.add_argument('--encode_ent_type', action='store_true', help="Encode the entity type into the special token")
     parser.add_argument("--save_model", action='store_true', help="Save trained checkpoints.")
