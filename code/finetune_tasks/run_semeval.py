@@ -20,7 +20,7 @@ from collections import Counter, OrderedDict
 import sys
 sys.path.append("./code")
 
-from constants.tacred import *
+from constants.semeval import *
 from utils.sen_re import *
 from models.sen_re import *
 
@@ -82,9 +82,9 @@ def main(args):
 
     processor = DataProcessor(args.data_dir)
 
-    train_features = processor.load_tacred_json("train.json", encode_ent_type=args.encode_ent_type)
-    dev_features = processor.load_tacred_json("dev.json", encode_ent_type=args.encode_ent_type)
-    test_features = processor.load_tacred_json("test.json", encode_ent_type=args.encode_ent_type)
+    train_features = processor.load_semeval_txt("SemEval2010_task8_training/TRAIN_FILE.TXT", set_name="train")
+    dev_features = processor.load_semeval_txt("SemEval2010_task8_training/TRAIN_FILE.TXT", set_name="dev")
+    test_features = processor.load_semeval_txt("SemEval2010_task8_testing_keys/TEST_FILE_FULL.TXT", set_name="test")
 
     if args.do_train:
         logger.info("Start pre-processing training data")

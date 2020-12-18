@@ -5,10 +5,12 @@ import os
 import torch
 import sys
 import argparse
+import numpy as np
 
 # from constants.tacred import *
 from constants import tacred
 from constants import kbp37
+from constants import semeval
 
 from collections import Counter, OrderedDict
 from keras.preprocessing.sequence import pad_sequences
@@ -151,6 +153,38 @@ def score(key, prediction, no_relation="no_relation", verbose=False):
     return prec_micro, recall_micro, f1_micro
 
 
+def eval(trained_model, eval_dataloader, device, id2label, negative_label="no_relation"):
+
+    gold_list = []
+    pred_list = []
+
+    # Evaluate data for one epoch
+    for batch in eval_dataloader:
+        # Add batch to GPU
+        batch = tuple(t.to(device) for t in batch)
+        # Unpack the inputs from our dataloader
+        b_input_ids, b_input_mask, b_labels, b_subj_idx, b_obj_idx = batch
+        # Telling the model not to compute or store gradients, saving memory and speeding up dev
+        with torch.no_grad():
+            # Forward pass, calculate logit predictions
+            logits = trained_model(b_input_ids, token_type_ids=None, attention_mask=b_input_mask,
+                           subj_ent_start=b_subj_idx, obj_ent_start=b_obj_idx
+                           )
+
+        # Move logits and labels to CPU
+        logits = logits[0].detach().cpu().numpy()
+        label_ids = b_labels.to('cpu').numpy()
+
+        gold_list += np.argmax(logits, axis=1).tolist()
+        pred_list += label_ids.tolist()
+
+    prec, rec, f1 = score([id2label[gold_id] for gold_id in gold_list],
+                          [id2label[pred_id] for pred_id in pred_list],
+                          no_relation=negative_label
+                          )
+
+    return prec, rec, f1
+
 class InputFeatures(object):
     """A single set of features of data."""
 
@@ -233,7 +267,6 @@ class DataProcessor(object):
 
         return feature_list
 
-
     def load_kbp37_txt(self, file_name):
         """See base class."""
 
@@ -280,6 +313,63 @@ class DataProcessor(object):
                                               relation=relation, subj_ent_start=subj_ent_start,
                                               obj_ent_start=obj_ent_start,
                                               sen_len=len(sen_str.split())))
+
+        print("The number of mentions:", len(feature_list))
+
+        return feature_list
+
+    def load_semeval_txt(self, file_name, set_name):
+        """See base class."""
+
+        data_path = os.path.join(self.data_dir, file_name)
+
+        def load_from_txt(data_path, verbose=False, strip=True):
+            examples = []
+
+            with open(data_path, encoding='utf-8') as infile:
+                while True:
+                    line = infile.readline()
+                    if len(line) == 0:
+                        break
+
+                    if strip:
+                        line = line.strip()
+
+                    examples.append(line)
+
+            if verbose:
+                print("{} examples read in {} .".format(len(examples), data_path))
+            return examples
+
+        org_data = load_from_txt(data_path)
+        assert len(org_data) % 4 == 0
+
+        feature_list = []
+
+        for idx in range(0, len(org_data), 4):
+            sid_sen_str = org_data[idx]
+            relation = org_data[idx+1]
+
+            if len(sid_sen_str.split("\t")) != 2:
+                print(sid_sen_str)
+                raise
+
+            sid, sen_str = sid_sen_str.split("\t")
+            assert sen_str.startswith('"') and sen_str.endswith('"')
+            sen_str = sen_str[1:-1] # Remove the prefix and suffix
+
+            subj_ent_start = "<e1>"
+            obj_ent_start = "<e2>"
+
+            feature_list.append(InputFeatures(sentence=sen_str, label=semeval.LABEL_TO_ID[relation],
+                                              relation=relation, subj_ent_start=subj_ent_start,
+                                              obj_ent_start=obj_ent_start,
+                                              sen_len=len(sen_str.split())))
+
+        if set_name == "train":
+            feature_list = feature_list[:6500]
+        elif set_name == "dev":
+            feature_list = feature_list[6500:]
 
         print("The number of mentions:", len(feature_list))
 

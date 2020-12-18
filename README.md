@@ -20,7 +20,7 @@ to generate relation representation [(Soares et al., 2019)](https://arxiv.org/ab
 tokens such as `[E1-START]` and `[E1-END]` (`[SUBJ-START]` and `[SUBJ-END]` if we know which entity is the subject entity) are used to specify the positions of two entities, and the contextualized
 embeddings of `[E1-START]` and `[E2-START]` are concatenated as input to a linear layer to predict the relation.
 
-#### TACRED ([paper](https://nlp.stanford.edu/pubs/zhang2017tacred.pdf) / [data](https://catalog.ldc.upenn.edu/LDC2018T24))
+#### TACRED [[paper]](https://nlp.stanford.edu/pubs/zhang2017tacred.pdf) [[data]](https://catalog.ldc.upenn.edu/LDC2018T24)
 
 ```
 export TACRED_DATA_DIR=<TACRED_DATA_DIR>
@@ -50,7 +50,7 @@ The results on test set:
 | BERT (base)             | 68.31         | 70.43      | 
 | RoBERTa (base)         |  68.42        | 70.38      | 
 
-#### KBP37 ([paper](https://arxiv.org/pdf/1508.01006v2.pdf) / [data](https://github.com/zhangdongxu/kbp37))
+#### KBP37 [[paper]](https://arxiv.org/pdf/1508.01006v2.pdf) [[data]](https://github.com/zhangdongxu/kbp37)
 ```
 export KBP37_DATA_DIR=<KBP37_DATA_DIR>
 export OUT_DIR=<$OUT_DIR>
@@ -72,9 +72,30 @@ python code/finetune_tasks/run_kbp37.py \
 | BERT (base)             | 68.35         | 70.28      | 
 | RoBERTa (base)         |  68.59         | 69.61      | 
 
+
+#### SemEval-2010 Task 8 [[paper]](https://www.aclweb.org/anthology/S10-1006.pdf) [[data]](https://docs.google.com/leaf?id=0B_jQiLugGTAkMDQ5ZjZiMTUtMzQ1Yy00YWNmLWJlZDYtOWY1ZDMwY2U4YjFk&sort=name&layout=list&num=50)
+```
+export SemEval_DATA_DIR=<SemEval_DATA_DIR>
+export OUT_DIR=<$OUT_DIR>
+python code/finetune_tasks/run_semeval.py \
+  --data_dir $SemEval_DATA_DIR \
+  --gpu_ids 0,1 \
+  --lm_model bert-base-uncased \
+  --batch_size 128 \
+  --learning_rate 2e-5 \
+  --num_train_epochs 20 \
+  --max_seq_length 128 \
+  --output_dir $OUT_DIR \
+  --do_train \
+  --save_model
+```
+
+|                   | Dev    | Test  | 
+| ----------------------  | ------------- | ---------  | 
+| BERT (base)             |  80.56        | 88.53      | 
+| RoBERTa (base)          |  80.67        | 87.74      | 
+
 ## TODO
-### Sentence-level RE
-- [ ] SemEval-2010 Task 8
 
 ### Dialogue RE
 - [ ] DialogRE
